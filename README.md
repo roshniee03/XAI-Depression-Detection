@@ -32,17 +32,7 @@ The system combines traditional machine learning, deep learning, and transformer
 * Pandas
 * NumPy
 
-## Project Structure
 
-```text
-XAI-Depression-Detection/
-├── core/
-├── detector/
-├── models/
-├── manage.py
-├── requirements.txt
-└── README.md
-```
 
 ## Model Performance
 
