@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MindScan — Depression Severity Detector</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg:#f0f7ff;
+  --s1:#ffffff;
+  --s2:#e8f3fd;
+  --s3:#d6eaf8;
+  --border:#c2ddf5;
+  --border2:#a8ccec;
+  --text:#0d2d4a;
+  --muted:#5585a8;
+  --muted2:#8ab2cc;
+  --accent:#1a6bbf;
+  --accent2:#3b9edd;
+  --none:#0d9e6e;
+  --mild:#d97706;
+  --moderate:#c2500a;
+  --severe:#c0392b;
+}
+
+html{scroll-behavior:smooth}
+
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  min-height:100vh;
+  overflow-x:hidden;
+  position:relative;
+}
+
+/* ── CANVAS BACKGROUND ── */
+#bg-canvas{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:0;
+  pointer-events:none;
+}
+
+.wrap{
+  position:relative;
+  z-index:2;
+  max-width:860px;
+  margin:0 auto;
+  padding:0 28px;
+}
+
+/* ── HEADER ── */
+header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:36px 0 28px;
+  border-bottom:1px solid var(--border);
+  margin-bottom:56px;
+}
+
+.logo{display:flex;flex-direction:column;gap:3px}
+
+.logo-name{
+  font-family:'Space Grotesk',sans-serif;
+  font-weight:700;
+  font-size:20px;
+  letter-spacing:-0.8px;
+  color:#0d2d4a;
+  line-height:1;
+}
+
+.logo-sub{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  color:rgba(26,107,191,0.65);
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+}
+
+.nav-pills{display:flex;gap:8px}
+
+.nav-pill{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--muted);
+  border:1px solid var(--border);
+  padding:5px 12px;
+  border-radius:20px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  cursor:default;
+}
+
+.nav-pill.active{
+  color:var(--accent);
+  border-color:rgba(59,130,246,0.4);
+  background:rgba(59,130,246,0.06);
+}
+
+/* ── HERO ── */
+.hero{
+  text-align:center;
+  padding:0 0 64px;
+}
+
+.hero-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+  opacity:0;
+  animation:risein .7s ease .1s forwards;
+}
+
+.hero-eyebrow::before,
+.hero-eyebrow::after{
+  content:'';
+  display:block;
+  width:24px;
+  height:1px;
+  background:currentColor;
+  opacity:0.5;
+}
+
+.hero h1{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(42px,6.5vw,68px);
+  line-height:1.08;
+  letter-spacing:-2px;
+  margin-bottom:20px;
+  opacity:0;
+  animation:risein .7s ease .2s forwards;
+}
+
+.hero h1 .italic{font-style:italic;color:#1a6bbf}
+
+.hero p{
+  font-size:16px;
+  color:var(--muted);
+  max-width:540px;
+  margin:0 auto 36px;
+  line-height:1.7;
+  font-weight:400;
+  opacity:0;
+  animation:risein .7s ease .3s forwards;
+}
+
+.hero-stats{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:28px;
+  opacity:0;
+  animation:risein .7s ease .4s forwards;
+}
+
+.hero-stat{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:0.05em;
+}
+
+.hero-stat-dot{
+  width:6px;height:6px;
+  border-radius:50%;
+}
+
+/* ── INPUT BOX ── */
+.input-box{
+  background:var(--s1);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  padding:2px;
+  margin-bottom:20px;
+  opacity:0;
+  animation:risein .7s ease .5s forwards;
+  box-shadow:0 0 60px rgba(26,107,191,0.08);
+}
+
+.input-inner{
+  background:var(--s2);
+  border-radius:18px;
+  padding:24px 26px;
+}
+
+.input-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:14px;
+}
+
+.input-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.input-label::before{
+  content:'';
+  display:block;
+  width:8px;height:8px;
+  border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 8px var(--accent);
+  animation:glow-pulse 2s ease infinite;
+}
+
+.model-badge{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--accent2);
+  letter-spacing:0.06em;
+}
+
+textarea{
+  width:100%;
+  background:transparent;
+  border:none;
+  color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  line-height:1.7;
+  resize:none;
+  min-height:130px;
+  outline:none;
+}
+
+textarea::placeholder{color:var(--muted2)}
+
+.input-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+
+.char-bar-wrap{
+  flex:1;
+  height:3px;
+  background:var(--border);
+  border-radius:2px;
+  margin-right:16px;
+  overflow:hidden;
+}
+
+.char-bar{
+  height:100%;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:2px;
+  width:0%;
+  transition:width .2s;
+}
+
+.char-count{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  margin-right:20px;
+  min-width:60px;
+}
+
+.analyze-btn{
+  background:linear-gradient(135deg,#1a6bbf,#3b9edd);
+  color:#fff;
+  border:none;
+  border-radius:12px;
+  padding:12px 26px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:14px;
+  font-weight:600;
+  cursor:pointer;
+  letter-spacing:0.01em;
+  position:relative;
+  overflow:hidden;
+  transition:transform .15s, box-shadow .2s;
+}
+
+.analyze-btn::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+}
+
+.analyze-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 32px rgba(26,107,191,0.30);
+}
+
+.analyze-btn:active{transform:translateY(0)}
+.analyze-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+/* ── SCALE ROW ── */
+.scale-row{
+  display:flex;
+  align-items:center;
+  gap:0;
+  margin-bottom:56px;
+  opacity:0;
+  animation:risein .7s ease .6s forwards;
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+
+.scale-cell{
+  flex:1;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-right:1px solid var(--border);
+  cursor:default;
+  transition:background .2s;
+}
+
+.scale-cell:last-child{border-right:none}
+.scale-cell:hover{background:var(--s2)}
+
+.scale-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.scale-name{font-size:13px;font-weight:600}
+.scale-desc{font-size:11px;color:var(--muted);margin-top:1px;font-family:'JetBrains Mono',monospace;letter-spacing:0.03em}
+
+/* ── LOADING ── */
+.loading{
+  display:none;
+  text-align:center;
+  padding:60px 0;
+}
+
+.loading.active{display:block}
+
+.loading-ring{
+  width:56px;height:56px;
+  margin:0 auto 20px;
+  position:relative;
+}
+
+.loading-ring svg{
+  animation:spin .9s linear infinite;
+}
+
+.loading-text{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+
+.loading-sub{
+  font-size:12px;
+  color:var(--muted2);
+  margin-top:6px;
+  animation:blink 1.5s ease infinite;
+}
+
+/* ── RESULT PANEL ── */
+.result{
+  display:none;
+  opacity:0;
+  transform:translateY(16px);
+  transition:opacity .4s, transform .4s;
+}
+
+.result.show{display:block}
+.result.vis{opacity:1;transform:translateY(0)}
+
+/* Main severity card */
+.sev-card{
+  border-radius:20px;
+  padding:36px;
+  margin-bottom:14px;
+  border:1px solid;
+  position:relative;
+  overflow:hidden;
+}
+
+.sev-card.none  {border-color:rgba(16,185,129,.4);background:rgba(16,185,129,.05)}
+.sev-card.mild  {border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)}
+.sev-card.moderate{border-color:rgba(249,115,22,.4);background:rgba(249,115,22,.05)}
+.sev-card.severe{border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.05)}
+
+.sev-card-bg{
+  position:absolute;
+  top:-80px;right:-80px;
+  width:280px;height:280px;
+  border-radius:50%;
+  filter:blur(80px);
+  opacity:.15;
+  pointer-events:none;
+}
+
+.sev-card.none .sev-card-bg  {background:var(--none)}
+.sev-card.mild .sev-card-bg  {background:var(--mild)}
+.sev-card.moderate .sev-card-bg{background:var(--moderate)}
+.sev-card.severe .sev-card-bg{background:var(--severe)}
+
+.sev-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+
+.sev-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.14em;
+  text-transform:uppercase;
+  padding:5px 12px;
+  border-radius:20px;
+  border:1px solid currentColor;
+  margin-bottom:12px;
+}
+
+.sev-badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:glow-pulse 1.5s ease infinite}
+
+.sev-name{
+  font-family:'Instrument Serif',serif;
+  font-size:54px;
+  line-height:1;
+  letter-spacing:-2px;
+}
+
+.sev-card.none .sev-name{color:var(--none)}
+.sev-card.mild .sev-name{color:var(--mild)}
+.sev-card.moderate .sev-name{color:var(--moderate)}
+.sev-card.severe .sev-name{color:var(--severe)}
+
+.sev-card.none .sev-badge{color:var(--none)}
+.sev-card.mild .sev-badge{color:var(--mild)}
+.sev-card.moderate .sev-badge{color:var(--moderate)}
+.sev-card.severe .sev-badge{color:var(--severe)}
+
+/* Donut confidence */
+.donut-wrap{
+  position:relative;
+  width:90px;height:90px;
+  flex-shrink:0;
+}
+
+.donut-wrap svg{transform:rotate(-90deg)}
+
+.donut-track{fill:none;stroke:var(--border2);stroke-width:7}
+.donut-fill {fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.16,1,.3,1)}
+
+.donut-label{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+
+.donut-pct{
+  font-family:'JetBrains Mono',monospace;
+  font-size:18px;
+  font-weight:500;
+  line-height:1;
+}
+
+.donut-word{
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  color:var(--muted);
+  letter-spacing:0.05em;
+  margin-top:2px;
+}
+
+.sev-desc{
+  font-size:14px;
+  color:var(--muted);
+  line-height:1.7;
+  position:relative;
+  z-index:1;
+}
+
+/* Prob section */
+.sub-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:22px 24px;
+  margin-bottom:14px;
+}
+
+.sub-label{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--muted);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  margin-bottom:20px;
+}
+
+.prob-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:14px;
+}
+
+.prob-row:last-child{margin-bottom:0}
+
+.prob-name{
+  font-size:13px;
+  font-weight:600;
+  width:74px;
+  flex-shrink:0;
+  text-transform:capitalize;
+}
+
+.prob-track{
+  flex:1;
+  height:5px;
+  background:var(--s3);
+  border-radius:3px;
+  overflow:hidden;
+}
+
+.prob-fill{
+  height:100%;
+  border-radius:3px;
+  width:0;
+  transition:width 1s cubic-bezier(.16,1,.3,1);
+}
+
+.prob-pct{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  color:var(--muted);
+  width:38px;
+  text-align:right;
+  flex-shrink:0;
+}
+
+/* Keywords */
+.kw-wrap{display:flex;flex-wrap:wrap;gap:8px}
+
+.kw-chip{
+  padding:6px 14px;
+  border-radius:20px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  border:1px solid;
+  opacity:0;
+  animation:chip-in .4s ease forwards;
+  cursor:default;
+  transition:transform .15s;
+}
+
+.kw-chip:hover{transform:scale(1.06)}
+.kw-chip.high    {color:#fca5a5;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.08)}
+.kw-chip.medium  {color:#fdba74;border-color:rgba(249,115,22,.5);background:rgba(249,115,22,.08)}
+.kw-chip.low     {color:#fcd34d;border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08)}
+.kw-chip.neutral {color:var(--muted);border-color:var(--border2);background:transparent}
+
+/* Disclaimer */
+.disclaimer{
+  display:flex;
+  gap:12px;
+  background:rgba(245,158,11,.06);
+  border:1px solid rgba(245,158,11,.25);
+  border-radius:12px;
+  padding:14px 18px;
+  margin-bottom:14px;
+  font-size:12px;
+  color:rgba(245,158,11,.8);
+  line-height:1.6;
+}
+
+.reset-btn{
+  background:none;
+  border:1px solid var(--border2);
+  color:var(--muted);
+  border-radius:10px;
+  padding:10px 18px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:13px;
+  cursor:pointer;
+  transition:color .2s, border-color .2s;
+  margin-bottom:64px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.reset-btn:hover{color:var(--text);border-color:var(--muted)}
+
+/* How-it-works */
+.hiw-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:64px;
+  opacity:0;
+  animation:risein .7s ease .7s forwards;
+}
+
+.hiw-card{
+  background:var(--s1);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:20px;
+}
+
+.hiw-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  color:var(--accent);
+  letter-spacing:0.1em;
+  margin-bottom:10px;
+}
+
+.hiw-icon{
+  font-size:22px;
+  margin-bottom:8px;
+}
+
+.hiw-card h4{font-size:14px;font-weight:600;margin-bottom:6px}
+
+.hiw-card p{font-size:12px;color:var(--muted);line-height:1.65}
+
+/* ── ANIMATIONS ── */
+@keyframes risein{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@keyframes blink{
+  0%,100%{opacity:1}
+  50%{opacity:.35}
+}
+
+@keyframes glow-pulse{
+  0%,100%{opacity:1;box-shadow:0 0 6px currentColor}
+  50%{opacity:.6;box-shadow:0 0 12px currentColor}
+}
+
+@keyframes chip-in{
+  from{opacity:0;transform:scale(.9)}
+  to{opacity:1;transform:scale(1)}
+}
+
+@media(max-width:600px){
+  .hiw-grid{grid-template-columns:1fr}
+  .sev-top{flex-direction:column-reverse;gap:16px}
+  .nav-pills{display:none}
+  .scale-cell .scale-desc{display:none}
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <div class="logo-name">MindScan</div>
+      <div class="logo-sub">NLP · BERT · XAI</div>
+    </div>
+    <div class="nav-pills">
+      <div class="nav-pill active">Detector</div>
+      <div class="nav-pill">About</div>
+      <div class="nav-pill">Docs</div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">Depression Severity Analysis</div>
+    <h1>What do your words<br><span class="italic">reveal</span> about you?</h1>
+    <p>Paste any social media post or personal text. Our fine-tuned BERT model classifies depression severity in four levels — with full XAI explanation.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-dot" style="background:var(--none)"></div>
+        <span>BERT · Transformer</span>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-dot" style="background:var(--accent2)"></div>
+        <span>SHAP + LIME · XAI</span>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-dot" style="background:var(--mild)"></div>
+        <span>4-class severity</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="input-box">
+    <div class="input-inner">
+      <div class="input-header">
+        <div class="input-label">Text input</div>
+        <div class="model-badge">bert-base-uncased / fine-tuned</div>
+      </div>
+      <textarea id="inputText" maxlength="1000"
+        placeholder="e.g. I haven't felt like myself in weeks. Everything feels pointless and I don't even know why I bother anymore..."></textarea>
+      <div class="input-footer">
+        <div class="char-bar-wrap"><div class="char-bar" id="charBar"></div></div>
+        <span class="char-count" id="charCount">0 / 1000</span>
+        <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">Analyze →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCALE ROW -->
+  <div class="scale-row">
+    <div class="scale-cell">
+      <div class="scale-dot" style="background:var(--none)"></div>
+      <div>
+        <div class="scale-name" style="color:var(--none)">None</div>
+        <div class="scale-desc">No indicators</div>
+      </div>
+    </div>
+    <div class="scale-cell">
+      <div class="scale-dot" style="background:var(--mild)"></div>
+      <div>
+        <div class="scale-name" style="color:var(--mild)">Mild</div>
+        <div class="scale-desc">Low mood</div>
+      </div>
+    </div>
+    <div class="scale-cell">
+      <div class="scale-dot" style="background:var(--moderate)"></div>
+      <div>
+        <div class="scale-name" style="color:var(--moderate)">Moderate</div>
+        <div class="scale-desc">Persistent</div>
+      </div>
+    </div>
+    <div class="scale-cell">
+      <div class="scale-dot" style="background:var(--severe)"></div>
+      <div>
+        <div class="scale-name" style="color:var(--severe)">Severe</div>
+        <div class="scale-desc">Acute distress</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading" id="loading">
+    <div class="loading-ring">
+      <svg width="56" height="56" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border2)" stroke-width="4"/>
+        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--accent)" stroke-width="4"
+                stroke-linecap="round" stroke-dasharray="138" stroke-dashoffset="104"/>
+      </svg>
+    </div>
+    <div class="loading-text">Running model inference</div>
+    <div class="loading-sub">Tokenizing · Embedding · Classifying · SHAP</div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="result" id="result">
+
+    <div class="sev-card" id="sevCard">
+      <div class="sev-card-bg"></div>
+      <div class="sev-top">
+        <div>
+          <div class="sev-badge" id="sevBadge">
+            <div class="sev-badge-dot"></div>
+            <span>Depression Level</span>
+          </div>
+          <div class="sev-name" id="sevName">—</div>
+        </div>
+        <div class="donut-wrap">
+          <svg width="90" height="90" viewBox="0 0 90 90">
+            <circle class="donut-track" cx="45" cy="45" r="36"/>
+            <circle class="donut-fill" id="donutFill" cx="45" cy="45" r="36"
+                    stroke-dasharray="226" stroke-dashoffset="226"/>
+          </svg>
+          <div class="donut-label">
+            <span class="donut-pct" id="donutPct">0%</span>
+            <span class="donut-word">confidence</span>
+          </div>
+        </div>
+      </div>
+      <p class="sev-desc" id="sevDesc"></p>
+    </div>
+
+    <div class="sub-card">
+      <div class="sub-label">Class probabilities</div>
+      <div class="prob-row">
+        <span class="prob-name" style="color:var(--none)">None</span>
+        <div class="prob-track"><div class="prob-fill" id="pb-none" style="background:var(--none)"></div></div>
+        <span class="prob-pct" id="pp-none">—</span>
+      </div>
+      <div class="prob-row">
+        <span class="prob-name" style="color:var(--mild)">Mild</span>
+        <div class="prob-track"><div class="prob-fill" id="pb-mild" style="background:var(--mild)"></div></div>
+        <span class="prob-pct" id="pp-mild">—</span>
+      </div>
+      <div class="prob-row">
+        <span class="prob-name" style="color:var(--moderate)">Moderate</span>
+        <div class="prob-track"><div class="prob-fill" id="pb-moderate" style="background:var(--moderate)"></div></div>
+        <span class="prob-pct" id="pp-moderate">—</span>
+      </div>
+      <div class="prob-row">
+        <span class="prob-name" style="color:var(--severe)">Severe</span>
+        <div class="prob-track"><div class="prob-fill" id="pb-severe" style="background:var(--severe)"></div></div>
+        <span class="prob-pct" id="pp-severe">—</span>
+      </div>
+    </div>
+
+    <div class="sub-card">
+      <div class="sub-label">Key influencing words — SHAP values</div>
+      <div class="kw-wrap" id="kwWrap"></div>
+    </div>
+
+    <div class="disclaimer">
+      <span>⚕</span>
+      <span>Research tool only — not a clinical diagnosis. If you or someone you know needs help, please consult a qualified mental health professional.</span>
+    </div>
+
+    <button class="reset-btn" onclick="doReset()">← Analyze another</button>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="hiw-grid">
+    <div class="hiw-card">
+      <div class="hiw-num">01 / PREPROCESS</div>
+      <div class="hiw-icon">⚙</div>
+      <h4>NLP Cleaning</h4>
+      <p>Text is cleaned, stopwords removed, and fed into BERT tokenizer for subword tokenization.</p>
+    </div>
+    <div class="hiw-card">
+      <div class="hiw-num">02 / INFERENCE</div>
+      <div class="hiw-icon">⚡</div>
+      <h4>BERT Classifier</h4>
+      <p>Fine-tuned BERT model encodes context and outputs a 4-class severity probability distribution.</p>
+    </div>
+    <div class="hiw-card">
+      <div class="hiw-num">03 / EXPLAIN</div>
+      <div class="hiw-icon">🔍</div>
+      <h4>XAI via SHAP</h4>
+      <p>SHAP values reveal which tokens pushed the prediction toward each severity level — interpretable outputs for clinical review.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ── ANIMATED CANVAS BACKGROUND ── */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles=[], nodes=[], t=0;
+
+function resize(){
+  W=canvas.width=window.innerWidth;
+  H=canvas.height=window.innerHeight;
+}
+
+resize();
+window.addEventListener('resize',resize);
+
+// Floating particles
+for(let i=0;i<55;i++){
+  particles.push({
+    x:Math.random()*1400,
+    y:Math.random()*900,
+    vx:(Math.random()-.5)*0.3,
+    vy:(Math.random()-.5)*0.3,
+    r:Math.random()*1.5+0.5,
+    alpha:Math.random()*0.4+0.1,
+    hue:Math.random()<0.6?210:195
+  });
+}
+
+// Neural network nodes (static grid)
+const cols=8,rows=6;
+for(let r=0;r<rows;r++){
+  for(let c=0;c<cols;c++){
+    nodes.push({
+      x:c/(cols-1),
+      y:r/(rows-1),
+      phase:Math.random()*Math.PI*2,
+      speed:Math.random()*.015+.008
+    });
+  }
+}
+
+function drawScene(){
+  ctx.clearRect(0,0,W,H);
+
+  // Base light radial gradient
+  const grd=ctx.createRadialGradient(W/2,H*.3,0,W/2,H*.3,H*.8);
+  grd.addColorStop(0,'rgba(220,238,255,0.95)');
+  grd.addColorStop(1,'rgba(240,247,255,1)');
+  ctx.fillStyle=grd;
+  ctx.fillRect(0,0,W,H);
+
+  // Neural net connections
+  ctx.save();
+  ctx.globalAlpha=1;
+  for(let i=0;i<nodes.length;i++){
+    const n=nodes[i];
+    const nx=n.x*W;
+    const ny=n.y*H;
+    const pulse=Math.sin(t*n.speed+n.phase);
+    const alpha=0.04+0.03*pulse;
+
+    // Connect to nearby nodes
+    for(let j=i+1;j<nodes.length;j++){
+      const m=nodes[j];
+      const mx=m.x*W;
+      const my=m.y*H;
+      const dist=Math.hypot(nx-mx,ny-my);
+      if(dist<W/cols*1.6){
+        const lineAlpha=alpha*(1-dist/(W/cols*1.6));
+        ctx.beginPath();
+        ctx.moveTo(nx,ny);
+        ctx.lineTo(mx,my);
+        ctx.strokeStyle=`rgba(26,107,191,${lineAlpha})`;
+        ctx.lineWidth=0.5;
+        ctx.stroke();
+      }
+    }
+  }
+  ctx.restore();
+
+  // Neural net nodes
+  for(let i=0;i<nodes.length;i++){
+    const n=nodes[i];
+    const nx=n.x*W;
+    const ny=n.y*H;
+    const pulse=Math.sin(t*n.speed+n.phase);
+    const r=1.5+pulse*1;
+    const a=0.15+0.1*pulse;
+    ctx.beginPath();
+    ctx.arc(nx,ny,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(26,107,191,${a})`;
+    ctx.fill();
+  }
+
+  // Floating particles
+  for(const p of particles){
+    p.x+=p.vx;
+    p.y+=p.vy;
+    if(p.x<-10)p.x=W+10;
+    if(p.x>W+10)p.x=-10;
+    if(p.y<-10)p.y=H+10;
+    if(p.y>H+10)p.y=-10;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`hsla(${p.hue},70%,55%,${p.alpha*0.4})`;
+    ctx.fill();
+  }
+
+  // Sweeping aurora glow at top
+  const aurora=ctx.createRadialGradient(W*.5,0,0,W*.5,0,H*.55);
+  aurora.addColorStop(0,'rgba(26,107,191,0.06)');
+  aurora.addColorStop(0.5,'rgba(59,158,221,0.03)');
+  aurora.addColorStop(1,'transparent');
+  ctx.fillStyle=aurora;
+  ctx.fillRect(0,0,W,H);
+
+  // Slower secondary glow that drifts
+  const ox=Math.sin(t*.003)*W*.15;
+  const glow2=ctx.createRadialGradient(W*.3+ox,H*.6,0,W*.3+ox,H*.6,H*.4);
+  glow2.addColorStop(0,'rgba(100,180,240,0.04)');
+  glow2.addColorStop(1,'transparent');
+  ctx.fillStyle=glow2;
+  ctx.fillRect(0,0,W,H);
+
+  t++;
+  requestAnimationFrame(drawScene);
+}
+drawScene();
+
+/* ── CHAR COUNT ── */
+const ta=document.getElementById('inputText');
+ta.addEventListener('input',()=>{
+  const n=ta.value.length;
+  document.getElementById('charCount').textContent=n+' / 1000';
+  document.getElementById('charBar').style.width=(n/10)+'%';
+});
+
+/* ── SEVERITY META ── */
+const META={
+  none:{
+    desc:'No significant depressive indicators detected. The language patterns suggest typical emotional expression without clinical concern.',
+    conf_color:'#10b981'
+  },
+  mild:{
+    desc:'Mild depressive language detected. The text shows some signs of low mood or negativity, but does not suggest acute distress.',
+    conf_color:'#f59e0b'
+  },
+  moderate:{
+    desc:'Moderate depressive indicators present. Language suggests persistent low mood, hopelessness, or withdrawal — this warrants attention.',
+    conf_color:'#f97316'
+  },
+  severe:{
+    desc:'Severe depressive indicators detected. The text contains language strongly associated with serious depression. Professional support is strongly recommended.',
+    conf_color:'#ef4444'
+  }
+};
+
+/* ── DEMO PREDICTION ── */
+function mockPredict(text){
+  const t=text.toLowerCase();
+  const sevW=['hopeless','worthless','suicidal','end my life','no point','want to die',"can't go on",'empty','nothing matters','hollow','meaningless','give up'];
+  const modW=['exhausted','overwhelmed',"can't cope",'numb','broken','falling apart','pointless','burden','alone','darkness','trapped','invisible'];
+  const mildW=['sad','tired','down','low','struggling','anxious','stressed','not okay','lonely','unmotivated','drained','lost'];
+
+  let s=sevW.filter(w=>t.includes(w)).length;
+  let m=modW.filter(w=>t.includes(w)).length;
+  let l=mildW.filter(w=>t.includes(w)).length;
+
+  let probs={none:.62,mild:.22,moderate:.11,severe:.05};
+  if(s>=2)     probs={none:.03,mild:.07,moderate:.18,severe:.72};
+  else if(s===1)probs={none:.05,mild:.12,moderate:.31,severe:.52};
+  else if(m>=2) probs={none:.07,mild:.20,moderate:.54,severe:.19};
+  else if(m===1)probs={none:.14,mild:.36,moderate:.40,severe:.10};
+  else if(l>=1) probs={none:.24,mild:.52,moderate:.17,severe:.07};
+
+  const allKW=[...sevW,...modW,...mildW];
+  const found=allKW.filter(w=>t.includes(w));
+  const shap=found.map(w=>({
+    word:w,
+    weight:sevW.includes(w)?'high':modW.includes(w)?'medium':'low'
+  }));
+  const textTokens=text.split(/\s+/).filter(w=>w.length>4&&!found.includes(w.toLowerCase()));
+  textTokens.slice(0,3).forEach(w=>shap.push({word:w.toLowerCase(),weight:'neutral'}));
+
+  const label=Object.entries(probs).sort((a,b)=>b[1]-a[1])[0][0];
+  return{label,probs,shap:shap.slice(0,10)};
+}
+
+async function runAnalysis(){
+  const text=document.getElementById('inputText').value.trim();
+  if(text.length<8){
+    ta.style.border='1px solid rgba(239,68,68,.6)';
+    setTimeout(()=>ta.style.border='',1000);
+    return;
+  }
+  document.getElementById('analyzeBtn').disabled=true;
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('result').classList.remove('show','vis');
+
+  try{
+    const res=await fetch('/api/predict/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCookie('csrftoken')},
+      body:JSON.stringify({text})
+    });
+    const data=await res.json();
+    data.shap=[];
+    renderResult(data);
+  }catch(err){
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('analyzeBtn').disabled=false;
+    alert('Error connecting to server. Make sure Django is running.');
+  }
+}
+
+function renderResult({label,probs,shap}){
+  document.getElementById('loading').classList.remove('active');
+  document.getElementById('analyzeBtn').disabled=false;
+
+  // Severity card class
+  const card=document.getElementById('sevCard');
+  card.className='sev-card '+label;
+  document.getElementById('sevName').textContent=label.charAt(0).toUpperCase()+label.slice(1);
+  document.getElementById('sevDesc').textContent=META[label].desc;
+
+  // Donut
+  const conf=Math.round(probs[label]*100);
+  const circ=226;
+  const offset=circ-(conf/100)*circ;
+  const df=document.getElementById('donutFill');
+  df.style.stroke=META[label].conf_color;
+  df.style.strokeDashoffset=circ;
+  setTimeout(()=>df.style.strokeDashoffset=offset,80);
+  document.getElementById('donutPct').textContent=conf+'%';
+  document.getElementById('donutPct').style.color=META[label].conf_color;
+
+  // Bars
+  setTimeout(()=>{
+    ['none','mild','moderate','severe'].forEach(cls=>{
+      const pct=Math.round(probs[cls]*100);
+      document.getElementById('pb-'+cls).style.width=pct+'%';
+      document.getElementById('pp-'+cls).textContent=pct+'%';
+    });
+  },200);
+
+  // Keywords
+  const kw=document.getElementById('kwWrap');
+  kw.innerHTML='';
+  if(!shap.length){
+    kw.innerHTML='<span style="font-family:JetBrains Mono,monospace;font-size:12px;color:var(--muted)">No significant keyword signals detected.</span>';
+  } else {
+    shap.forEach((item,i)=>{
+      const chip=document.createElement('div');
+      chip.className='kw-chip '+item.weight;
+      chip.textContent=item.word;
+      chip.style.animationDelay=(i*55)+'ms';
+      kw.appendChild(chip);
+    });
+  }
+
+  // Show panel
+  const panel=document.getElementById('result');
+  panel.classList.add('show');
+  setTimeout(()=>{
+    panel.classList.add('vis');
+    panel.scrollIntoView({behavior:'smooth',block:'start'});
+  },50);
+}
+
+function doReset(){
+  document.getElementById('result').classList.remove('show','vis');
+  document.getElementById('inputText').value='';
+  document.getElementById('charCount').textContent='0 / 1000';
+  document.getElementById('charBar').style.width='0%';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function getCookie(name){
+  let v=null;
+  document.cookie.split(';').forEach(c=>{
+    const [k,val]=c.trim().split('=');
+    if(k===name)v=decodeURIComponent(val);
+  });
+  return v;
+}
+</script>
+</body>
+</html>
